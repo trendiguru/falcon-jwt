@@ -1,9 +1,7 @@
 # This package will provide:
 # 1. The LoginResouce. POSTing to this with a valid username and password will send back an Auth Cookie
-# 2. Corresponding AuthMiddleware. After loging in with LoginResoucre,
-# AuthMiddleware with allows you to
+# 2. Corresponding AuthMiddleware which will only allow logged in users to access resources.
 
-# things.py
 
 # Let's get this party started.
 import sys
@@ -18,18 +16,7 @@ from passlib.hash import sha256_crypt
 
 DEFAULT_COOKIE_OPTS = {"name": "auth_token", "place":"holder"}
 
-# # Set Up logging?
-# logger = logging.getLogger()
-# logger.setLevel(logging.DEBUG)
-# ch = logging.StreamHandler(sys.stdout)
-# ch.setLevel(logging.DEBUG)
-# formatter = logging.Formatter(
-#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# ch.setFormatter(formatter)
-# logger.addHandler(ch)
 
-
-# Secret should be "a strong password" not shared with anyone
 class LoginResource(object):
 
     def __init__(self, get_user, secret, token_expiration_seconds, **cookie_opts):
@@ -120,6 +107,4 @@ class AuthMiddleware(object):
 # def get_auth_objects(get_user, secret, token_expiration_seconds=3600,
 # cookie_opts=DEFAULT_COOKIE_OPTS):
 def get_auth_objects(get_user, secret, token_expiration_seconds, cookie_opts=DEFAULT_COOKIE_OPTS):
-    print "up in hea"
-    print cookie_opts
     return LoginResource(get_user, secret, token_expiration_seconds, **cookie_opts), AuthMiddleware(secret, **cookie_opts)
