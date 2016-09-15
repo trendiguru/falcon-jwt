@@ -8,18 +8,17 @@ from datetime import datetime, timedelta
 import sys
 import jwt
 from passlib.hash import sha256_crypt
+import logging
 
 import falcon_jwt
 
-import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
@@ -33,9 +32,6 @@ USERS = {
 }
 
 
-# Falcon follows the REST architectural style, meaning (among
-# other things) that you think in terms of resources and state
-# transitions, which map to HTTP verbs.
 class ThingsResource(object):
 
     def on_get(self, req, resp):
@@ -60,13 +56,14 @@ login, auth_middleware = falcon_jwt.get_auth_objects(
 )
 
 
-# falcon.API instances are callable WSGI apps
+# Insert auth_middleware
 app = falcon.API(middleware=[auth_middleware])
 
-
-# Resources are represented by long-lived class instances
 things = ThingsResource()
 
-# things will handle all requests to the '/things' URL path
 app.add_route('/things', things)
+
+# Add login resource
 app.add_route('/login', login)
+
+# Good to go!
