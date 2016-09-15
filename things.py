@@ -27,8 +27,8 @@ logger.addHandler(ch)
 USERS = {
     "iddan@iddan.co":
     {
-        "email": "iddan@iddan.co",
-        "password": sha256_crypt.encrypt("iddan_is_cool")
+        "email": "john@john.co",
+        "password": sha256_crypt.encrypt("john_is_cool")
     }
 }
 
@@ -47,14 +47,14 @@ class ThingsResource(object):
                      '    ~ Immanuel Kant\n\n')
 
 
-COOKIE_OPTS = {"name": "fzz_auth_token",
+COOKIE_OPTS = {"name": "my_auth_token",
                "max_age": 86400,
                "path": "/things",
                "http_only": True}
 
 login, auth_middleware = falcon_jwt.get_auth_objects(
     USERS.get,
-    "UPe6Qqp8xJeRyavxup8GzMTYT6yDwYND",
+    "UPe6Qqp8xJeRyavxup8GzMTYT6yDwYND", # random secret
     3600,
     cookie_opts=COOKIE_OPTS
 )
