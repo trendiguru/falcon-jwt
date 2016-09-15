@@ -1,9 +1,3 @@
-# This package will provide:
-# 1. The LoginResouce. POSTing to this with a valid username and password will send back an Auth Cookie
-# 2. Corresponding AuthMiddleware which will only allow logged in users to access resources.
-
-
-# Let's get this party started.
 import sys
 from datetime import datetime, timedelta
 import traceback
@@ -104,7 +98,5 @@ class AuthMiddleware(object):
             return False
 
 
-# def get_auth_objects(get_user, secret, token_expiration_seconds=3600,
-# cookie_opts=DEFAULT_COOKIE_OPTS):
 def get_auth_objects(get_user, secret, token_expiration_seconds, cookie_opts=DEFAULT_COOKIE_OPTS):
     return LoginResource(get_user, secret, token_expiration_seconds, **cookie_opts), AuthMiddleware(secret, **cookie_opts)
