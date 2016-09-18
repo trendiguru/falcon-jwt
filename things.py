@@ -24,7 +24,7 @@ logger.addHandler(ch)
 
 # Just for testing
 USERS = {
-    "iddan@iddan.co":
+    "john@john.co":
     {
         "email": "john@john.co",
         "password": sha256_crypt.encrypt("john_is_cool")
