@@ -61,7 +61,7 @@ class LoginResource(object):
                     self.token_opts['name'] : self.token_opts['value']
                     }
         else:
-            riase falcon.HTTPInternalServerError('Unrecognized jwt token location specifier')
+            raise falcon.HTTPInternalServerError('Unrecognized jwt token location specifier')
 
 
 
@@ -107,9 +107,11 @@ class AuthMiddleware(object):
 
     def _token_is_valid(self, token):
         try:
-            jwt.decode(token, self.secret, algorithm='HS256')
+            options = { 'verify_exp': True}
+            jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
             return True
-        except:
+        except Exception as e:
+            logging.debug("Token validation failed Error :{}".format(str(e)))
             return False
 
 
