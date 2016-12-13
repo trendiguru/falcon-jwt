@@ -57,7 +57,7 @@ class LoginResource(object):
         logging.debug("Setting TOKEN!")
         self.token_opts["value"] = token
         logging.debug(self.token_opts)
-        if self.token_opts['location'] == 'cookie':
+        if self.token_opts.get('location', 'cookie') == 'cookie': # default to cookie
             resp.set_cookie(**self.token_opts)
         elif self.token_opts['location'] == 'header':
             resp.body = json.dumps({
@@ -82,7 +82,7 @@ class AuthMiddleware(object):
 
         challenges = ['Hello="World"']  # I think this is very irrelevant
 
-        if self.token_opts['location'] == 'cookie':
+        if self.token_opts.get('location', 'cookie') == 'cookie':
             token = req.cookies.get(self.token_opts.get("name"))
         elif self.token_opts['location'] == 'header':
             token = req.get_header(self.token_opts.get("name"), required=True)
