@@ -1,26 +1,24 @@
+# pylint: disable=invalid-name
 # things.py
 
 # Let's get this party started.
-import falcon
-import json
-import traceback
-from datetime import datetime, timedelta
 import sys
-import jwt
-from passlib.hash import sha256_crypt
 import logging
 
+from passlib.hash import sha256_crypt
+
+import falcon
 import falcon_jwt
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
-logger.addHandler(ch)
+LOGGER.addHandler(ch)
 
 # Just for testing
 USERS = {
@@ -34,7 +32,7 @@ USERS = {
 
 class ThingsResource(object):
 
-    def on_get(self, req, resp):
+    def on_get(self, req, resp): # pylint: disable=unused-argument,no-self-use
         logging.debug("Reached on_get()")
         resp.status = falcon.HTTP_200  # This is the default status
         resp.body = ('\nTwo things awe me most, the starry sky '
@@ -52,7 +50,7 @@ login, auth_middleware = falcon_jwt.get_auth_objects(
     USERS.get,
     "UPe6Qqp8xJeRyavxup8GzMTYT6yDwYND", # random secret
     3600,
-    cookie_opts=COOKIE_OPTS
+    token_opts=COOKIE_OPTS
 )
 
 

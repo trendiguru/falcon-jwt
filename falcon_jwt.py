@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime, timedelta
 import traceback
 import json
@@ -23,8 +22,12 @@ class LoginResource(object):
     def on_post(self, req, resp):
         logging.debug("Reached on_post() in Login")
         try:
-            data = json.loads(req.stream.read())
-        except Exception as e:
+            req_stream = req.stream.read()
+            if isinstance(req_stream, bytes):
+                data = json.loads(req_stream.decode())
+            else:
+                data = json.loads(req.stream.read())
+        except Exception:
             raise falcon.HTTPBadRequest(
                 "I don't understand", traceback.format_exc())
         email = data["email"]
@@ -57,9 +60,9 @@ class LoginResource(object):
         if self.token_opts['location'] == 'cookie':
             resp.set_cookie(**self.token_opts)
         elif self.token_opts['location'] == 'header':
-            resp.body = {
-                    self.token_opts['name'] : self.token_opts['value']
-                    }
+            resp.body = json.dumps({
+                self.token_opts['name'] : self.token_opts['value']
+                })
         else:
             raise falcon.HTTPInternalServerError('Unrecognized jwt token location specifier')
 
@@ -71,9 +74,9 @@ class AuthMiddleware(object):
         self.secret = secret
         self.token_opts = token_opts or DEFAULT_TOKEN_OPTS
 
-    def process_resource(self, req, resp, resource, params):
+    def process_resource(self, req, resp, resource, params): # pylint: disable=unused-argument
         logging.debug("Processing request in AuthMiddleware: ")
-        if type(resource) is LoginResource:
+        if isinstance(resource, LoginResource):
             logging.debug("LOGIN, DON'T NEED TOKEN")
             return
 
@@ -107,13 +110,13 @@ class AuthMiddleware(object):
 
     def _token_is_valid(self, token):
         try:
-            options = { 'verify_exp': True}
+            options = {'verify_exp': True}
             jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
             return True
-        except Exception as e:
-            logging.debug("Token validation failed Error :{}".format(str(e)))
+        except jwt.DecodeError as err:
+            logging.debug("Token validation failed Error :{}".format(str(err)))
             return False
 
 
-def get_auth_objects(get_user, secret, token_expiration_seconds, token_opts=DEFAULT_TOKEN_OPTS):
+def get_auth_objects(get_user, secret, token_expiration_seconds, token_opts=DEFAULT_TOKEN_OPTS): # pylint: disable=dangerous-default-value
     return LoginResource(get_user, secret, token_expiration_seconds, **token_opts), AuthMiddleware(secret, **token_opts)
