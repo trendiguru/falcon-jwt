@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime, timedelta
 import traceback
 import json
@@ -8,23 +7,27 @@ import falcon
 import jwt
 from passlib.hash import sha256_crypt
 
-DEFAULT_COOKIE_OPTS = {"name": "auth_token", "place":"holder"}
+DEFAULT_TOKEN_OPTS = {"name": "auth_token", "location":"cookie"}
 
 
 class LoginResource(object):
 
-    def __init__(self, get_user, secret, token_expiration_seconds, **cookie_opts):
+    def __init__(self, get_user, secret, token_expiration_seconds, **token_opts):
         self.get_user = get_user
         self.secret = secret
         self.token_expiration_seconds = token_expiration_seconds
-        self.cookie_opts = cookie_opts or DEFAULT_COOKIE_OPTS
-        logging.debug(cookie_opts)
+        self.token_opts = token_opts or DEFAULT_TOKEN_OPTS
+        logging.debug(token_opts)
 
     def on_post(self, req, resp):
         logging.debug("Reached on_post() in Login")
         try:
-            data = json.loads(req.stream.read())
-        except Exception as e:
+            req_stream = req.stream.read()
+            if isinstance(req_stream, bytes):
+                data = json.loads(req_stream.decode())
+            else:
+                data = json.loads(req.stream.read())
+        except Exception:
             raise falcon.HTTPBadRequest(
                 "I don't understand", traceback.format_exc())
         email = data["email"]
@@ -51,27 +54,42 @@ class LoginResource(object):
                             'exp': datetime.utcnow() + timedelta(seconds=self.token_expiration_seconds)},
                            self.secret,
                            algorithm='HS256').decode("utf-8")
-        logging.debug("Setting COOKIE!")
-        self.cookie_opts["value"] = token
-        logging.debug(self.cookie_opts)
-        resp.set_cookie(**self.cookie_opts)
+        logging.debug("Setting TOKEN!")
+        self.token_opts["value"] = token
+        logging.debug(self.token_opts)
+        if self.token_opts['location'] == 'cookie':
+            resp.set_cookie(**self.token_opts)
+        elif self.token_opts['location'] == 'header':
+            resp.body = json.dumps({
+                self.token_opts['name'] : self.token_opts['value']
+                })
+        else:
+            raise falcon.HTTPInternalServerError('Unrecognized jwt token location specifier')
+
 
 
 class AuthMiddleware(object):
 
-    def __init__(self, secret, **cookie_opts):
+    def __init__(self, secret, **token_opts):
         self.secret = secret
-        self.cookie_opts = cookie_opts or DEFAULT_COOKIE_OPTS
+        self.token_opts = token_opts or DEFAULT_TOKEN_OPTS
 
-    def process_resource(self, req, resp, resource, params):
+    def process_resource(self, req, resp, resource, params): # pylint: disable=unused-argument
         logging.debug("Processing request in AuthMiddleware: ")
-        if type(resource) is LoginResource:
+        if isinstance(resource, LoginResource):
             logging.debug("LOGIN, DON'T NEED TOKEN")
             return
 
         challenges = ['Hello="World"']  # I think this is very irrelevant
 
-        token = req.cookies.get(self.cookie_opts.get("name"))
+        if self.token_opts['location'] == 'cookie':
+            token = req.cookies.get(self.token_opts.get("name"))
+        elif self.token_opts['location'] == 'header':
+            token = req.get_header(self.token_opts.get("name"), required=True)
+        else:
+            # Unrecognized token location
+            token = None
+
         if token is None:
             description = ('Please provide an auth token '
                            'as part of the request.')
@@ -92,11 +110,13 @@ class AuthMiddleware(object):
 
     def _token_is_valid(self, token):
         try:
-            jwt.decode(token, self.secret, algorithm='HS256')
+            options = {'verify_exp': True}
+            jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
             return True
-        except:
+        except jwt.DecodeError as err:
+            logging.debug("Token validation failed Error :{}".format(str(err)))
             return False
 
 
-def get_auth_objects(get_user, secret, token_expiration_seconds, cookie_opts=DEFAULT_COOKIE_OPTS):
-    return LoginResource(get_user, secret, token_expiration_seconds, **cookie_opts), AuthMiddleware(secret, **cookie_opts)
+def get_auth_objects(get_user, secret, token_expiration_seconds, token_opts=DEFAULT_TOKEN_OPTS): # pylint: disable=dangerous-default-value
+    return LoginResource(get_user, secret, token_expiration_seconds, **token_opts), AuthMiddleware(secret, **token_opts)
